@@ -15,6 +15,31 @@
         body { margin: 0; padding: 0; background-color: #111827; }
         ::-moz-selection { background: #002AFF; color: #FFFFFF; }
         ::selection { background: #002AFF; color: #FFFFFF; }
+        
+        /* New reliable print CSS */
+        @media print {
+            @page { size: landscape; margin: 0; }
+            body { 
+                background-color: #FFFFFF !important; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
+            .screen-only { display: none !important; }
+            .print-only { display: block !important; }
+            
+            .print-slide { 
+                width: 100vw !important; 
+                height: 100vh !important; 
+                page-break-after: always !important; 
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                position: relative !important;
+                overflow: hidden !important;
+            }
+        }
+        @media screen {
+            .print-only { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -33,6 +58,9 @@
         );
         const Maximize = ({ size = 24 }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        );
+        const Printer = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         );
 
         const Logo = () => (
@@ -715,41 +743,61 @@
             const handlePrev = () => setCurrentSlide((prev) => (prev > 0 ? prev - 1 : prev));
             const handleNext = () => setCurrentSlide((prev) => (prev < slides.length - 1 ? prev + 1 : prev));
 
+            const handlePrint = () => {
+                window.print();
+            };
+
             return (
-                <div className="min-h-screen bg-[#111827] flex flex-col items-center justify-center p-4 sm:p-8 font-sans">
-                <div className="relative bg-white w-full max-w-[1280px] shadow-2xl rounded-sm overflow-hidden flex flex-col" style={{ aspectRatio: '16/9' }}>
-                    <div className="h-1 w-full bg-[#EEEEEE] absolute top-0 left-0 z-50">
-                    <div className="h-full bg-[#002AFF] transition-all duration-300 ease-in-out" style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}></div>
+                <>
+                    {/* Screen UI - Hidden when printing */}
+                    <div className="min-h-screen bg-[#111827] flex flex-col items-center justify-center p-4 sm:p-8 font-sans screen-only">
+                        <div className="relative bg-white w-full max-w-[1280px] shadow-2xl rounded-sm overflow-hidden flex flex-col" style={{ aspectRatio: '16/9' }}>
+                            <div className="h-1 w-full bg-[#EEEEEE] absolute top-0 left-0 z-50">
+                                <div className="h-full bg-[#002AFF] transition-all duration-300 ease-in-out" style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}></div>
+                            </div>
+                            <div className="flex-grow p-12 overflow-hidden relative">
+                                {React.createElement(slides[currentSlide])}
+                                <Logo />
+                            </div>
+                        </div>
+                        <div className="mt-8 flex items-center justify-between w-full max-w-[1280px] px-4">
+                            <div className="text-gray-400 text-sm font-medium flex items-center gap-2 tracking-wide">
+                                <span className="text-white font-bold bg-gray-800 px-3 py-1 rounded">
+                                    {getActLabel(currentSlide)}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <button onClick={handlePrev} disabled={currentSlide === 0} className="flex items-center gap-2 px-4 py-2 text-white bg-gray-800 rounded hover:bg-[#002AFF] disabled:opacity-30 disabled:hover:bg-gray-800 transition-colors">
+                                    <ChevronLeft size={20} />
+                                    <span className="text-sm font-semibold uppercase tracking-wider">Prev</span>
+                                </button>
+                                <div className="text-gray-400 font-mono text-sm font-medium px-4 py-1 bg-gray-900 rounded border border-gray-700">
+                                    {currentSlide + 1} / {slides.length}
+                                </div>
+                                <button onClick={handleNext} disabled={currentSlide === slides.length - 1} className="flex items-center gap-2 px-4 py-2 text-white bg-gray-800 rounded hover:bg-[#002AFF] disabled:opacity-30 disabled:hover:bg-gray-800 transition-colors">
+                                    <span className="text-sm font-semibold uppercase tracking-wider">Next</span>
+                                    <ChevronRight size={20} />
+                                </button>
+                            </div>
+                            <div className="text-gray-500 text-sm flex gap-4">
+                                <button onClick={handlePrint} className="hover:text-white transition-colors flex items-center gap-2 mr-2" title="Export to PDF">
+                                    <Printer size={18} />
+                                </button>
+                                <button className="hover:text-white transition-colors" title="Fullscreen"><Maximize size={18} /></button>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex-grow p-12 overflow-hidden relative">
-                    {React.createElement(slides[currentSlide])}
-                    <Logo />
+
+                    {/* Print Layout - Hidden on screen, shown when printing */}
+                    <div className="print-only bg-white">
+                        {slides.map((SlideComponent, index) => (
+                            <div key={index} className="print-slide p-12 flex flex-col justify-center">
+                                <SlideComponent />
+                                <Logo />
+                            </div>
+                        ))}
                     </div>
-                </div>
-                <div className="mt-8 flex items-center justify-between w-full max-w-[1280px] px-4">
-                    <div className="text-gray-400 text-sm font-medium flex items-center gap-2 tracking-wide">
-                    <span className="text-white font-bold bg-gray-800 px-3 py-1 rounded">
-                        {getActLabel(currentSlide)}
-                    </span>
-                    </div>
-                    <div className="flex items-center gap-6">
-                    <button onClick={handlePrev} disabled={currentSlide === 0} className="flex items-center gap-2 px-4 py-2 text-white bg-gray-800 rounded hover:bg-[#002AFF] disabled:opacity-30 disabled:hover:bg-gray-800 transition-colors">
-                        <ChevronLeft size={20} />
-                        <span className="text-sm font-semibold uppercase tracking-wider">Prev</span>
-                    </button>
-                    <div className="text-gray-400 font-mono text-sm font-medium px-4 py-1 bg-gray-900 rounded border border-gray-700">
-                        {currentSlide + 1} / {slides.length}
-                    </div>
-                    <button onClick={handleNext} disabled={currentSlide === slides.length - 1} className="flex items-center gap-2 px-4 py-2 text-white bg-gray-800 rounded hover:bg-[#002AFF] disabled:opacity-30 disabled:hover:bg-gray-800 transition-colors">
-                        <span className="text-sm font-semibold uppercase tracking-wider">Next</span>
-                        <ChevronRight size={20} />
-                    </button>
-                    </div>
-                    <div className="text-gray-500 text-sm flex gap-4">
-                    <button className="hover:text-white transition-colors" title="Fullscreen"><Maximize size={18} /></button>
-                    </div>
-                </div>
-                </div>
+                </>
             );
         }
 
